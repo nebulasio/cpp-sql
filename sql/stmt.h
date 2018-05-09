@@ -1,0 +1,260 @@
+//!//
+//  Created by Xuepeng Fan on 08/11/2017.
+//
+
+#pragma once
+#include "sql/common.h"
+#include "sql/rows.h"
+#include <sstream>
+
+namespace neb {
+namespace sql {
+
+struct cond_stmt {
+public:
+  virtual void dump_to_sql_string(std::stringstream &ss) = 0;
+    };
+
+
+    template<typename T1, typename T2>
+      struct and_cond_stmt : public cond_stmt{
+        and_cond_stmt(const T1 & t1, const T2 & t2): stmt1(t1), stmt2(t2){}
+        T1 stmt1;
+        T2 stmt2;
+
+        typedef typename neb::traits::merge_type_list<
+            typename T1::cols_type, typename T2::cols_type>::type cols_type;
+
+        void traverse_and_call_back(const std::function<void (cond_stmt *)> & callback){
+          stmt1.traverse_and_call_back(callback);
+          callback(this);
+          stmt2.traverse_and_call_back(callback);
+        }
+
+        virtual void dump_to_sql_string(std::stringstream & ss) {
+          ss<<" (";
+          stmt1.dump_to_sql_string(ss);
+          ss<<" and ";
+          stmt2.dump_to_sql_string(ss);
+          ss<<") ";
+        }
+      };
+    template< typename T1, typename T2>
+      struct or_cond_stmt : public cond_stmt{
+        or_cond_stmt(const T1 & t1, const T2 & t2): stmt1(t1), stmt2(t2){}
+        void traverse_and_call_back(const std::function<void (cond_stmt *)> & callback){
+          stmt1.traverse_and_call_back(callback);
+          callback(this);
+          stmt2.traverse_and_call_back(callback);
+        }
+        T1 stmt1;
+        T2 stmt2;
+        typedef typename neb::traits::merge_type_list<
+            typename T1::cols_type, typename T2::cols_type>::type cols_type;
+        virtual void dump_to_sql_string(std::stringstream & ss) {
+          ss<<" (";
+          stmt1.dump_to_sql_string(ss);
+          ss<<" or ";
+          stmt2.dump_to_sql_string(ss);
+          ss<<") ";
+        }
+      };
+
+
+    enum sql_cond_type{
+      eq_cond,
+      ne_cond,
+      ge_cond,
+      le_cond,
+    };
+
+    template<typename T, sql_cond_type CT>
+      struct basic_cond_stmt : public cond_stmt{
+        basic_cond_stmt(const typename T::type & value) : m_value (value){}
+        void traverse_and_call_back(const std::function<void (cond_stmt *)> & callback){
+          callback(this);
+        }
+        typename T::type m_value;
+
+        typedef neb::traits::type_list<T> cols_type;
+        const static sql_cond_type cond_type = CT;
+      };
+
+    template<typename T>
+      struct eq_cond_stmt : public basic_cond_stmt<T, eq_cond>{
+        eq_cond_stmt(const typename T::type & value): basic_cond_stmt<T, eq_cond>(value){}
+
+        virtual void dump_to_sql_string(std::stringstream & ss) {
+          ss<<T::name<<" = ? ";
+        }
+      };
+    template<typename T>
+      struct ne_cond_stmt : public basic_cond_stmt<T, ne_cond>{
+        ne_cond_stmt(const typename T::type & value): basic_cond_stmt<T, ne_cond>(value){}
+        virtual void dump_to_sql_string(std::stringstream & ss) {
+          ss<<T::name<<" != ? ";
+        }
+      };
+    template<typename T>
+      struct ge_cond_stmt : public basic_cond_stmt<T, ge_cond>{
+        ge_cond_stmt(const typename T::type & value): basic_cond_stmt<T, ge_cond>(value){}
+        virtual void dump_to_sql_string(std::stringstream & ss) {
+          ss<<T::name<<" >= ? ";
+        }
+      };
+    template<typename T>
+      struct le_cond_stmt : public basic_cond_stmt<T, le_cond>{
+        le_cond_stmt(const typename T::type & value): basic_cond_stmt<T, le_cond>(value){}
+        virtual void dump_to_sql_string(std::stringstream & ss) {
+          ss<<T::name<<" <= ? ";
+        }
+      };
+
+    template<typename TT, typename... ARGS>
+      struct statement{
+        public:
+          typedef typename TT::engine_type engine_type;
+          statement(engine_type *engine) : m_engine(engine) {}
+          virtual row_collection<ARGS...> eval() = 0;
+        protected:
+          engine_type *m_engine;
+      };
+
+
+#include "sql/where_stmt_bind.hpp"
+
+    template<typename TT, typename CST, typename... ARGS>
+      struct where_statement : public statement<TT, ARGS...>{
+    public:
+      typedef typename TT::engine_type engine_type;
+      where_statement(engine_type *engine, const std::string &sql,
+                      const CST &cst)
+          : statement<TT, ARGS...>(engine), m_prev_sql(sql), m_cst(cst) {}
+
+      virtual row_collection<ARGS...> eval() {
+        std::stringstream ss;
+        ss << m_prev_sql << " where ";
+
+        m_cst.dump_to_sql_string(ss);
+        ss << "; ";
+        auto native_statmenet = m_engine->prepare_sql_with_string(ss.str());
+        int index = 0;
+        traverse_cond_for_bind<TT, CST>::run(m_engine, native_statmenet, m_cst,
+                                             index);
+        auto ret = m_engine->eval_native_sql_stmt(native_statmenet);
+        return m_engine->template parse_records<ARGS...>(ret);
+        }
+        CST m_cst;
+        std::string m_prev_sql;
+
+      protected:
+        using statement<TT, ARGS...>::m_engine;
+      };//end class where_statement
+
+    template<typename TT>
+      struct update_statement : public statement<TT>{
+        public:
+          typedef typename TT::engine_type engine_type;
+          update_statement(engine_type *engine, const std::string &sql)
+              : statement<TT>(engine), m_prev_sql(sql) {}
+          virtual  row_collection<> eval(){
+            throw std::bad_exception();
+          }
+        template <typename CST>
+          where_statement<TT, CST> where(const CST & cst){
+          static_assert(
+              neb::traits::is_contain_types<typename TT::cols_type,
+                                            typename CST::cols_type>::value,
+              "Can't use rows that is not in table for *update where*");
+          return where_statement<TT, CST>(m_engine, m_prev_sql, cst);
+          }
+
+        protected:
+          using statement<TT>::m_engine;
+          std::string m_prev_sql;
+      };
+
+    template<typename TT>
+      struct delete_statement : public statement<TT>{
+        public:
+          typedef typename TT::engine_type engine_type;
+          delete_statement(engine_type *engine, const std::string &sql)
+              : statement<TT>(engine), m_prev_sql(sql) {}
+          virtual  row_collection<> eval(){
+            throw std::bad_exception();
+          }
+        template <typename CST>
+          where_statement<TT, CST> where(const CST & cst){
+          static_assert(
+              neb::traits::is_contain_types<typename TT::cols_type,
+                                            typename CST::cols_type>::value,
+              "Can't use rows that is not in table for *delete where*");
+          return where_statement<TT, CST>(m_engine, m_prev_sql, cst);
+          }
+
+        protected:
+          using statement<TT>::m_engine;
+          std::string m_prev_sql;
+      };
+
+
+    template<typename TT, typename... ARGS>
+      struct select_statement : public statement<TT, ARGS...>{
+    public:
+      typedef typename TT::engine_type engine_type;
+      select_statement(engine_type *engine) : statement<TT, ARGS...>(engine) {}
+      template <typename CST>
+      where_statement<TT, CST, ARGS...> where(const CST &cst) {
+        static_assert(
+            neb::traits::is_contain_types<typename TT::cols_type,
+                                          typename CST::cols_type>::value,
+            "Can't use rows that is not in table for *select where*");
+        return where_statement<TT, CST, ARGS...>(m_engine,
+                                                 get_eval_sql_string(), cst);
+          }
+
+        virtual row_collection<ARGS...> eval(){
+          std::stringstream ss;
+          ss<<get_eval_sql_string()<<";";
+          auto ret = m_engine->eval_sql_query_string(ss.str());
+          return m_engine->template parse_records<ARGS...>(ret);
+        }
+
+        protected:
+        std::string get_eval_sql_string() const{
+          std::stringstream ss;
+          ss<<"select ";
+          recursive_dump_col_name<ARGS...>(ss);
+          ss<<" from "<<TT::meta_type::table_name;
+          return ss.str();
+        }
+        template<typename T, typename T1, typename... TS>
+          void recursive_dump_col_name(std::stringstream & ss)const {
+            ss<<T::name<<", ";
+            recursive_dump_col_name<T1, TS...>(ss);
+          }
+        template<typename T>
+          void recursive_dump_col_name(std::stringstream & ss)const{
+            ss<<T::name;
+          }
+
+          using statement<TT, ARGS...>::m_engine;
+      };//end class select_statement
+
+  }
+}
+template <typename T1, typename T2>
+auto operator&&(const T1 &t1, const T2 &t2) ->
+    typename std::enable_if<std::is_base_of<neb::sql::cond_stmt, T1>::value &&
+                                std::is_base_of<neb::sql::cond_stmt, T2>::value,
+                            neb::sql::and_cond_stmt<T1, T2>>::type {
+  return neb::sql::and_cond_stmt<T1, T2>(t1, t2);
+         }
+
+         template <typename T1, typename T2>
+         auto operator||(const T1 &t1, const T2 &t2) -> typename std::enable_if<
+             std::is_base_of<neb::sql::cond_stmt, T1>::value &&
+                 std::is_base_of<neb::sql::cond_stmt, T2>::value,
+             neb::sql::or_cond_stmt<T1, T2>>::type {
+           return neb::sql::or_cond_stmt<T1, T2>(t1, t2);
+         }
