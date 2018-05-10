@@ -16,43 +16,21 @@ namespace neb{
         throw std::runtime_error("No support yet");
       }
     };
-
-    template<class STMT>
-      struct mysql_bind_setter<STMT, std::string>{
-      static void bind(STMT stmt, int index, const std::string& value){
-        stmt->setString(index, value);
-      }
+#define impl_mysql_bind_setter(type, method) \
+    template<class STMT> \
+      struct mysql_bind_setter<STMT, type>{ \
+      static void bind(STMT stmt, int index, const type & value){ \
+        stmt->method(index, value); \
+      } \
       };
-    template<class STMT>
-      struct mysql_bind_setter<STMT, int32_t>{
-      static void bind(STMT stmt, int index, int32_t value){
-        stmt->setInt(index, value);
-      }
-      };
-    template<class STMT>
-      struct mysql_bind_setter<STMT, uint32_t>{
-      static void bind(STMT stmt, int index, uint32_t value){
-        stmt->setUInt(index, value);
-      }
-      };
-    template<class STMT>
-      struct mysql_bind_setter<STMT, int64_t>{
-      static void bind(STMT stmt, int index, int64_t value){
-        stmt->setInt64(index, value);
-      }
-      };
-    template<class STMT>
-      struct mysql_bind_setter<STMT, uint64_t>{
-      static void bind(STMT stmt, int index, uint64_t value){
-        stmt->setUInt64(index, value);
-      }
-      };
-    template<class STMT>
-      struct mysql_bind_setter<STMT, double>{
-      static void bind(STMT stmt, int index, double value){
-        stmt->setDouble(index, value);
-      }
-      };
+    impl_mysql_bind_setter(std::string, setString);
+    impl_mysql_bind_setter(int32_t, setInt);
+    impl_mysql_bind_setter(uint32_t, setUInt);
+    impl_mysql_bind_setter(int64_t, setInt64);
+    impl_mysql_bind_setter(uint64_t, setUInt64);
+    impl_mysql_bind_setter(double, setDouble);
+    impl_mysql_bind_setter(float, setDouble);
+#undef impl_mysql_bind_setter
 
     template<class T>
       struct mysql_rs_getter{};
@@ -67,6 +45,7 @@ namespace neb{
 
     impl_mysql_rs_getter(std::string, getString);
     impl_mysql_rs_getter(double, getDouble);
+    impl_mysql_rs_getter(float, getDouble);
     impl_mysql_rs_getter(int64_t, getInt64);
     impl_mysql_rs_getter(uint64_t, getUInt64);
     impl_mysql_rs_getter(int32_t, getInt);
