@@ -44,7 +44,12 @@ int main(int argc, char *argv[]) {
   nrs.push_back(t3);
 
   mytable::update_rows(&engine, nrs);
-  auto ret2 = mytable::select<c1, c2, c3>(&engine).where(c1::eq(2)).eval();
+  auto ret2 = mytable::select<c1, c2, c3>(&engine)
+                  .where(c1::eq(2))
+                  .order_by<c1, neb::sql::desc>()
+                  .limit(1)
+                  .eval();
+  std::cout << ret2.size() << std::endl;
   std::cout << ret2[0].get<c1>() << ", " << ret2[0].get<c2>() << ", "
             << ret2[0].get<c3>() << std::endl;
 
