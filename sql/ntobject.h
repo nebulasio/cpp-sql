@@ -103,6 +103,8 @@ public:
 
     size_t size() const { return m_collection.size(); }
 
+    bool empty() const { return m_collection.empty(); }
+
     row_type &operator[](size_t index) { return m_collection[index]; }
 
     const row_type &operator[](size_t index) const
