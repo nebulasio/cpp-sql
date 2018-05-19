@@ -38,7 +38,7 @@ namespace neb{
     template<> \
       struct mysql_rs_getter<type>{ \
         template <typename RST> \
-          static type get(RST * r, const std::string & name){ \
+          static type get(RST r, const std::string & name){ \
             return r->method(name); \
           } \
       }; \
@@ -58,13 +58,13 @@ namespace neb{
     template<>
       struct mysql_record_setter<>{
         template<typename RT, typename RST>
-          static void set(RT & , RST * ){
+          static void set(RT & , RST  ){
           }
       };
     template<typename T, typename... ARGS>
       struct mysql_record_setter<T, ARGS...>{
         template<typename RT, typename RST>
-          static void set(RT & row, RST * r){
+          static void set(RT & row, RST r){
             row.template set<T>(mysql_rs_getter<typename T::type>::get(r, T::name));
             mysql_record_setter<ARGS...>::set(row, r);
           }
