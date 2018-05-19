@@ -89,7 +89,6 @@ template <> class mysql<cppconn> {
   }
 
   query_result_type eval_sql_query_string(const std::string &sql) {
-    std::cout<<sql<<std::endl;
     std::shared_ptr<::sql::Statement> stmt(m_sql_conn->createStatement());
     query_result_type ret;
     ret.reset(stmt->executeQuery(sql));
