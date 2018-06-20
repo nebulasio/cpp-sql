@@ -42,7 +42,7 @@ namespace neb{
     template<> \
       struct mysql_rs_getter<type>{ \
         template <typename RST> \
-          static type get(RST * r, const std::string & name){ \
+          static type get(RST r, const std::string & name){ \
             return r->method(name); \
           } \
       }; \
@@ -66,13 +66,13 @@ namespace neb{
     template<>
       struct mysql_record_setter<>{
         template<typename RT, typename RST>
-          static void set(RT & , RST * ){
+          static void set(RT & , RST  ){
           }
       };
     template<typename T, typename... ARGS>
       struct mysql_record_setter<T, ARGS...>{
         template<typename RT, typename RST>
-          static void set(RT & row, RST * r){
+          static void set(RT & row, RST r){
             row.template set<T>(mysql_rs_getter<typename T::type>::get(r, T::name));
             mysql_record_setter<ARGS...>::set(row, r);
           }
@@ -81,7 +81,7 @@ namespace neb{
 template <> class mysql<cppconn> {
   public:
     typedef std::shared_ptr<::sql::PreparedStatement > native_statement_type;
-    typedef ::sql::ResultSet * query_result_type;
+    typedef std::shared_ptr<::sql::ResultSet>  query_result_type;
 
     mysql(const std::string & url, const std::string & usrname, const std::string & passwd, const std::string &dbname)
     : m_url(url), m_usrname(usrname), m_passwd(passwd), m_dbname(dbname){
@@ -98,9 +98,10 @@ template <> class mysql<cppconn> {
   }
 
   query_result_type eval_sql_query_string(const std::string &sql) {
-    std::cout<<sql<<std::endl;
     std::shared_ptr<::sql::Statement> stmt(m_sql_conn->createStatement());
-    return stmt->executeQuery(sql);
+    query_result_type ret;
+    ret.reset(stmt->executeQuery(sql));
+    return ret;
   }
 
   template<typename... ARGS>
@@ -125,7 +126,9 @@ template <> class mysql<cppconn> {
   }
 
   query_result_type eval_native_sql_stmt(native_statement_type stmt) {
-    return stmt->executeQuery();
+    query_result_type ret;
+    ret.reset(stmt->executeQuery());
+    return ret;
   }
   template <typename T>
   void bind_to_native_statement(native_statement_type stmt, int index,
