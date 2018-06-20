@@ -26,18 +26,24 @@ static void recursive_dump_col_creation(std::stringstream & ss){
   dump_col_creation<T>::dump(ss);
   ss<<")";
 }
-template<typename T, typename T1, typename... TS>
-static void recursive_dump_for_index(std::stringstream & ss){
+template<typename engine_type, typename T, typename T1, typename... TS>
+static void recursive_dump_for_index(engine_type * engine, std::stringstream & ss){
   if(std::is_base_of<index<typename T::type>, T>::value){
-    ss<<"create "<<T::name<<"_index on "<<TM::table_name<<" ("<<T::name<<");";
+    ss.str(std::string());
+    ss<<"create index "<<T::name<<"_index on "<<TM::table_name<<" ("<<T::name<<")";
+    engine->eval_sql_string(ss.str());
+    ss.str(std::string());
   }else{
   }
-  recursive_dump_for_index<T1, TS...>(ss);
+  recursive_dump_for_index<engine_type, T1, TS...>(engine, ss);
 }
-template<typename T>
-static void recursive_dump_for_index(std::stringstream & ss){
+template<typename engine_type, typename T>
+static void recursive_dump_for_index(engine_type * engine, std::stringstream & ss){
   if(std::is_base_of<index<typename T::type>, T>::value){
-    ss<<"create "<<T::name<<"_index on "<<TM::table_name<<" ("<<T::name<<");";
+    ss<<"create index "<<T::name<<"_index on "<<TM::table_name<<" ("<<T::name<<")";
+    ss.str(std::string());
+    engine->eval_sql_string(ss.str());
+    ss.str(std::string());
   }else{
   }
 }

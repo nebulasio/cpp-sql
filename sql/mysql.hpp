@@ -24,6 +24,10 @@ namespace neb{
       } \
       };
     impl_mysql_bind_setter(std::string, setString);
+    impl_mysql_bind_setter(int8_t, setInt);
+    impl_mysql_bind_setter(uint8_t, setUInt);
+    impl_mysql_bind_setter(int16_t, setInt);
+    impl_mysql_bind_setter(uint16_t, setUInt);
     impl_mysql_bind_setter(int32_t, setInt);
     impl_mysql_bind_setter(uint32_t, setUInt);
     impl_mysql_bind_setter(int64_t, setInt64);
@@ -50,6 +54,10 @@ namespace neb{
     impl_mysql_rs_getter(uint64_t, getUInt64);
     impl_mysql_rs_getter(int32_t, getInt);
     impl_mysql_rs_getter(uint32_t, getUInt);
+    impl_mysql_rs_getter(int16_t, getInt);
+    impl_mysql_rs_getter(uint16_t, getUInt);
+    impl_mysql_rs_getter(int8_t, getInt);
+    impl_mysql_rs_getter(uint8_t, getUInt);
 #undef impl_mysql_rs_getter
 
     template<typename... ARGS>
@@ -84,6 +92,7 @@ template <> class mysql<cppconn> {
 
   }
   void eval_sql_string(const std::string &sql) {
+    if(sql.empty()) return ;
     std::shared_ptr<::sql::Statement> stmt(m_sql_conn->createStatement());
     stmt->execute(sql);
   }
@@ -124,8 +133,12 @@ template <> class mysql<cppconn> {
     mysql_bind_setter<native_statement_type, T>::bind(stmt, index, value);
   }
 
-  void begin_transaction() {  }
-  void end_transaction() {  }
+  void begin_transaction() {
+    eval_sql_string("START TRANSACTION");
+  }
+  void end_transaction() {
+    eval_sql_string("COMMIT");
+  }
 
 protected:
   ::sql::Driver *m_sql_driver;

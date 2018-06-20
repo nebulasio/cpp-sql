@@ -13,65 +13,24 @@ namespace internal {
 template <typename T> struct dump_col_type_creation {
   static void dump(std::stringstream &ss) { ss << " BLOB "; }
         };
-      template<>
-        struct dump_col_type_creation<uint64_t>{
-          static void dump(std::stringstream & ss){
-            ss<< " INTEGER ";
-          }
-        };
-      template<>
-        struct dump_col_type_creation<int64_t>{
-          static void dump(std::stringstream & ss){
-            ss<< " INTEGER ";
-          }
-        };
-      template<>
-        struct dump_col_type_creation<uint32_t>{
-          static void dump(std::stringstream & ss){
-            ss<< " INTEGER ";
-          }
-        };
-      template<>
-        struct dump_col_type_creation<int32_t>{
-          static void dump(std::stringstream & ss){
-            ss<< " INTEGER ";
-          }
-        };
-      template<>
-        struct dump_col_type_creation<uint16_t>{
-          static void dump(std::stringstream & ss){
-            ss<< " INTEGER ";
-          }
-        };
-      template<>
-        struct dump_col_type_creation<int16_t>{
-          static void dump(std::stringstream & ss){
-            ss<< " INTEGER ";
-          }
-        };
-      template<>
-        struct dump_col_type_creation<uint8_t>{
-          static void dump(std::stringstream & ss){
-            ss<< " INTEGER ";
-          }
-        };
-      template<>
-        struct dump_col_type_creation<int8_t>{
-          static void dump (std::stringstream & ss){
-            ss<< " INTEGER ";
-          }
-        };
-      template<>
-        struct dump_col_type_creation<std::string>{
-        static void dump(std::stringstream &ss) { ss << " VARCHAR(20) "; }
-        };
-      template<>
-        struct dump_col_type_creation<double>{
-          static void dump(std::stringstream & ss){
-            ss<< " REAL ";
-          }
-        };
-      //////////////////////////
+
+#define impl_table_dump_types(cpptype, sqltype)                                \
+  template <> struct dump_col_type_creation<cpptype> {                         \
+    static void dump(std::stringstream &ss) { ss << " " << sqltype << " "; }   \
+  }
+        impl_table_dump_types(uint64_t, "BIGINT UNSIGNED");
+        impl_table_dump_types(int64_t, "BIGINT");
+        impl_table_dump_types(uint32_t, "INT UNSIGNED");
+        impl_table_dump_types(int32_t, "INT");
+        impl_table_dump_types(int16_t, "SMALLINT");
+        impl_table_dump_types(uint16_t, "SMALLINT UNSIGNED");
+        impl_table_dump_types(int8_t, "TINYINT");
+        impl_table_dump_types(uint8_t, "TINYINT UNSIGNED");
+        impl_table_dump_types(float, "FLOAT");
+        impl_table_dump_types(double, "DOUBLE");
+        impl_table_dump_types(std::string, "VARCHAR(20)");
+
+        //////////////////////////
     }
 
     enum{

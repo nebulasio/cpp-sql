@@ -3,13 +3,13 @@
 //
 
 #pragma once
+#include "sql/columns.h"
 #include "sql/common.h"
+#include "sql/engine.h"
+#include "sql/mod_stmt_bind.h"
 #include "sql/rows.h"
 #include "sql/stmt.h"
-#include "sql/columns.h"
-#include "sql/engine.h"
 #include "sql/table_create.h"
-#include "sql/mod_stmt_bind.h"
 #include <sstream>
 
 namespace neb {
@@ -39,9 +39,11 @@ public:
     ss << "create table if not exists " << TM::table_name << " (";
     recursive_dump_col_creation<ARGS...>(ss);
     ss << ";";
-    // recursive_dump_for_index<ARGS...>(ss); //TODO support index
     engine->eval_sql_string(ss.str());
-  };
+    ss.str(std::string());
+    recursive_dump_for_index<engine_type, ARGS...>(engine, ss);
+    engine->eval_sql_string(ss.str());
+  }
   static void clear_table(engine_type *engine) {
     std::stringstream ss;
     ss << "delete * from " << TM::table_name << ";";
@@ -49,7 +51,7 @@ public:
   }
   static void drop_table(engine_type *engine) {
     std::stringstream ss;
-    ss << "drop table '" << TM::table_name << "';";
+    ss << "drop table " << TM::table_name << ";";
     engine->eval_sql_string(ss.str());
   }
   static bool insert_or_ignore_rows(engine_type *engine,
