@@ -398,7 +398,6 @@ public:
         limit_statement<TT, ARGS...> limit(int64_t count) {
           if (count <= 0) {
             throw std::runtime_error("limit count must be larger than 0");
-            return;
           }
           return limit_statement<TT, ARGS...>(m_engine, get_eval_sql_string(),
                                               count);
