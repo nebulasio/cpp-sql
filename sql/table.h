@@ -46,7 +46,7 @@ public:
   }
   static void clear_table(engine_type *engine) {
     std::stringstream ss;
-    ss << "delete * from " << TM::table_name << ";";
+    ss << "delete from " << TM::table_name << ";";
     engine->eval_sql_string(ss.str());
   }
   static void drop_table(engine_type *engine) {
@@ -151,7 +151,7 @@ public:
 
   static delete_statement<self_type> delete_rows(engine_type *engine) {
     std::stringstream ss;
-    ss << "delete from " << TM::table_name;
+    ss << "delete from " << TM::table_name << ";";
     std::string sql = ss.str();
     return delete_statement<self_type>(engine, sql);
   }
