@@ -9,21 +9,19 @@ define_column(c1, column, uint64_t, "id");
 define_column(c2, key, std::string, "event");
 define_column(c3, index, uint64_t, "ts");
 
-typedef neb::sql::table<neb::sql::mysql<neb::sql::cppconn>, mymeta, c1, c2, c3>
-    mytable;
+typedef neb::sql::default_table<mymeta, c1, c2, c3> mytable;
 
 int main(int argc, char *argv[]) {
 
-  neb::sql::mysql<neb::sql::cppconn> engine("tcp://127.0.0.1:3306", "root", "",
-                                            "test");
+  neb::sql::default_engine engine("tcp://127.0.0.1:3306", "root", "", "test");
   mytable::create_table(&engine);
 
   mytable::row_collection_type rows;
 
   mytable::row_collection_type::row_type t1, t2;
-  t1.set<c1, c2, c3>(1, "huobi", 123435);
+  t1.set<c1, c2, c3>(1, "column1", 123435);
   rows.push_back(t1);
-  t2.set<c1, c2, c3>(2, "okex", 1235);
+  t2.set<c1, c2, c3>(2, "column2", 1235);
   rows.push_back(t2);
 
   mytable::insert_or_replace_rows(&engine, rows);

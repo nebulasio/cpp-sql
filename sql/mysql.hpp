@@ -2,6 +2,7 @@
 
 #include "sql/engine.h"
 #include "sql/rows.h"
+#include "sql/table.h"
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
 #include <cppconn/resultset.h>
@@ -219,6 +220,10 @@ protected:
   std::thread::id m_local_thread_id;
 };
 
-  }
+using default_engine = mysql<cppconn>;
+
+template <typename TM, typename... ARGS>
+using default_table = table<default_engine, TM, ARGS...>;
+}
 }
 
