@@ -105,6 +105,8 @@ public:
 
     bool empty() const { return m_collection.empty(); }
 
+    row_type &back() { return m_collection.back(); }
+
     row_type &operator[](size_t index) { return m_collection[index]; }
 
     const row_type &operator[](size_t index) const
