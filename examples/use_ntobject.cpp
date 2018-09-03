@@ -23,5 +23,20 @@ int main(int argc, char *argv[]) {
 
   std::cout << obs.size() << std::endl;
 
+  typedef neb::ntobject<uid, email, uname> tt_t;
+  typedef neb::traits::type_list<uid, email, uname> t1_t;
+  typedef neb::traits::type_list<email, uid, uname> t2_t;
+  std::cout << "type compatiable: "
+            << neb::traits::is_two_type_list_compatible<t1_t, t2_t>::value
+            << std::endl;
+
+  tt_t tt = obj;
+
+  if (tt.get<email>() == obj.get<email>() && tt.get<uid>() == obj.get<uid>() &&
+      tt.get<uname>() == obj.get<uname>()) {
+    std::cout << "type convert ok" << std::endl;
+  } else {
+    std::cout << "type convert wrong" << std::endl;
+  }
   return 0;
 }

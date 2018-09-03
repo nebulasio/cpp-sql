@@ -46,11 +46,12 @@ template <typename A1, typename... ARGS> struct type_list<A1, ARGS...> {
         const static bool value = false;
       };
 
-    template<typename TL1, typename TL2>
-      struct is_contain_types{};
+      template <typename TL1, typename TL2> struct is_contain_types {
+        const static bool value = false;
+      };
 
-    template<typename... ARGS1, typename T, typename... ARGS2>
-      struct is_contain_types<type_list<ARGS1...>, type_list<T, ARGS2...> >{
+      template <typename... ARGS1, typename T, typename... ARGS2>
+      struct is_contain_types<type_list<ARGS1...>, type_list<T, ARGS2...>> {
         const static bool value = is_type_in_type_list<T, type_list<ARGS1...> >::value &&
           is_contain_types<type_list<ARGS1...>, type_list<ARGS2...> > ::value;
       };
@@ -91,6 +92,11 @@ template <typename A1, typename... ARGS> struct type_list<A1, ARGS...> {
       };
       template <> struct convert_type_list_to_tuple<neb::traits::type_list<>> {
         typedef std::tuple<> type;
+      };
+
+      template <typename T1, typename T2> struct is_two_type_list_compatible {
+        const static bool value =
+            is_contain_types<T1, T2>::value && is_contain_types<T2, T1>::value;
       };
   }
 }

@@ -51,5 +51,15 @@ int main(int argc, char *argv[]) {
   std::cout << ret2[0].get<c1>() << ", " << ret2[0].get<c2>() << ", "
             << ret2[0].get<c3>() << std::endl;
 
+  typedef neb::ntobject<c1, c2, c3> nt1_t;
+  typedef neb::ntobject<c3, c2, c1> nt2_t;
+
+  nt1_t v1, v2;
+  nt2_t v3;
+
+  v1.set<c1, c2, c3>(1, "column1", 123);
+  v2 = v1;
+  v3 = v1;
+
   return 0;
 }

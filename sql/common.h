@@ -8,6 +8,7 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <memory>
 
 namespace neb {
 namespace sql {} // end namespace sql

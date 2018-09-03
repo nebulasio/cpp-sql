@@ -44,6 +44,29 @@ public:
 
   ntobject() : m_content(new content_type()) {}
 
+  template <typename TL,
+            typename std::enable_if<traits::is_two_type_list_compatible<
+                                        typename ntobject<ARGS...>::type_list,
+                                        typename TL::type_list>::value,
+                                    int>::type = 0>
+  ntobject(const TL &val) : m_content(new content_type()) {
+    set_from<TL, ARGS...>(val);
+  }
+
+  ntobject<ARGS...> operator=(const ntobject<ARGS...> &val) {
+    if (&val == this)
+      return *this;
+    set_from<ntobject<ARGS...>, ARGS...>(val);
+  }
+  template <typename TL,
+            typename std::enable_if<traits::is_two_type_list_compatible<
+                                        typename ntobject<ARGS...>::type_list,
+                                        typename TL::type_list>::value,
+                                    int>::type = 0>
+  ntobject<ARGS...> operator=(const TL &val) {
+    set_from<TL, ARGS...>(val);
+  }
+
   template <typename CT> void set(const typename CT::type &val) {
     static_assert(neb::traits::is_type_in_type_list<
                       CT, neb::traits::type_list<ARGS...>>::value,
@@ -85,11 +108,19 @@ public:
       return std::get<index>(*m_content);
     }
 
-protected:
-  typedef typename neb::traits::convert_type_list_to_tuple<
-      typename extract_content_type_list<
-          neb::traits::type_list<ARGS...>>::type>::type content_type;
-  std::shared_ptr<content_type> m_content;
+  protected:
+    template <typename TL> void set_from(const TL &val) {}
+    template <typename TL, typename CT, typename... CARGS>
+    void set_from(const TL &val) {
+      set<CT>(val.get<CT>());
+      set_from<TL, CARGS...>(val);
+    }
+
+  protected:
+    typedef typename neb::traits::convert_type_list_to_tuple<
+        typename extract_content_type_list<
+            neb::traits::type_list<ARGS...>>::type>::type content_type;
+    std::shared_ptr<content_type> m_content;
 };
 
 template <typename... ARGS>
